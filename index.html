@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/3.2.1/mustache.min.js"></script>
   <style>
     body { background: #f5f7fa; padding-top: 4rem; font-family: 'Segoe UI', sans-serif; }
     .container { max-width: 960px; }
@@ -22,7 +23,7 @@
 <body>
 <div class="container">
   <div class="hero text-center">
-    <h1 class="mb-3">Marcenaria Criativa</h1>
+    <img src="logo.png" alt="">
     <p class="lead">Crie seu orçamento ou ordem de serviço de forma profissional.</p>
   </div>
 
@@ -53,15 +54,17 @@ const supa = window.supabase.createClient(
 
 // Dados fixos do contratante (empresa)
 const DADOS_EMPRESA = {
-  nome: "Marcenaria Criativa Ltda.",
-  cnpj: "12.345.678/0001-99",
-  endereco: "Rua das Madeiras, 1000 - Centro - SP",
-  telefone: "(11) 90000-0000",
-  email: "contato@marcenariacriativa.com"
+  nome: "Movelaria Tomsom",
+  cnpj: "42.898.010/0001-35",
+  ramo: "Prestação de serviço",
+  telefone: "(11) 98818-3037",
+  email: "movelariatomson@gmail.com",
+  endereco: "SP - Brasil",
+  pix: "movelariatomson@gmail.com",
 };
 
 // Chave Pix fixa
-const CHAVE_PIX = "marcenaria@pix.com.br";
+const CHAVE_PIX = "movelariatomson@gmail.com";
 
 // Termos e condições padrão
 const TERMOS_PADRAO =
@@ -96,8 +99,7 @@ function mostrarFormulario(tipo) {
         <div class="col-md-6"><input class="form-control" name="whatsapp" placeholder="WhatsApp (somente números)" value="11912345678" required /></div>
         <div class="col-md-12">
           <label class="form-label">Itens (descrição | preço | qtd)</label>
-          <textarea class="form-control" name="itens" rows="3" required>Lâmpada LED | 30 | 5
-Interruptor Simples | 10 | 2</textarea>
+          <textarea class="form-control" name="itens" rows="3" required>Lâmpada LED | 30 | 5\nInterruptor Simples | 10 | 2</textarea>
         </div>
         <div class="col-md-12"><input class="form-control" name="materiais" placeholder="Materiais utilizados" value="Fios, Plugues, Parafusos" /></div>
         <div class="col-md-4"><input class="form-control" name="valor" type="number" step="0.01" placeholder="Valor total (R$)" value="190" required /></div>
@@ -105,6 +107,10 @@ Interruptor Simples | 10 | 2</textarea>
         <div class="col-md-4"><input class="form-control" name="prazo" placeholder="Prazo de execução" value="10 dias úteis" required /></div>
         <div class="col-md-12">
           <textarea class="form-control" name="condicoes" placeholder="Condições gerais" required>Garantia de 12 meses contra defeitos. Cancelamento em até 24h úteis.</textarea>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label">Imagens (opcional, múltiplas)</label>
+          <input class="form-control" name="imagens" id="imagensInput" type="file" accept="image/*" multiple />
         </div>
         <div class="col-md-12 text-center">
           <div class="btn-group-custom mt-3">
@@ -116,156 +122,157 @@ Interruptor Simples | 10 | 2</textarea>
     </div></div>`;
 }
 
-async function gerarPDF(dados, tipo = "Orçamento") {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const margem = 15;
-  let y = 18;
-
-  // Cabeçalho
-  doc.setFontSize(18);
-  doc.setTextColor(40, 70, 150);
-  doc.text(DADOS_EMPRESA.nome, margem, y);
-  doc.setFontSize(11);
-  doc.setTextColor(80, 80, 80);
-  doc.text(`CNPJ: ${DADOS_EMPRESA.cnpj}`, margem, y + 7);
-  doc.text(DADOS_EMPRESA.endereco, margem, y + 14);
-  doc.text(`Tel: ${DADOS_EMPRESA.telefone}  |  E-mail: ${DADOS_EMPRESA.email}`, margem, y + 21);
-
-  // Título
-  y += 34;
-  doc.setFontSize(16);
-  doc.setTextColor(0, 0, 0);
-  doc.text(`${tipo} nº ${dados.numeroDocumento}`, margem, y);
-  y += 8;
-  doc.setFontSize(12);
-  doc.text(`Validade: ${dados.validade}`, margem, y);
-
-  // Seção contratante/co-contratado (lado a lado)
-  y += 14;
-  const x1 = margem, x2 = 110;
-  doc.setFontSize(13);
-  doc.setTextColor(40, 70, 150);
-  doc.text("Contratante:", x1, y);
-  doc.text("Contratado:", x2, y);
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  doc.text(DADOS_EMPRESA.nome, x1, y + 6);
-  doc.text(dados.nomeCliente, x2, y + 6);
-  doc.text(`CNPJ: ${DADOS_EMPRESA.cnpj}`, x1, y + 12);
-  doc.text(`CPF/CNPJ: ${dados.cpfCnpj}`, x2, y + 12);
-  doc.text(`Endereço: ${DADOS_EMPRESA.endereco}`, x1, y + 18);
-  doc.text(`Endereço: ${dados.endereco}`, x2, y + 18);
-  doc.text(`Telefone: ${DADOS_EMPRESA.telefone}`, x1, y + 24);
-  doc.text(`Telefone: ${dados.telefone}`, x2, y + 24);
-  doc.text(`E-mail: ${DADOS_EMPRESA.email}`, x1, y + 30);
-  doc.text(`E-mail: ${dados.email}`, x2, y + 30);
-  y += 38;
-
-  // Itens
-  doc.setFontSize(13);
-  doc.setTextColor(40, 70, 150);
-  doc.text("Itens do Serviço:", margem, y);
-  y += 8;
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  // Tabela de itens
-  const itens = dados.itens.split('\n').map(l => l.split('|').map(s => s.trim()));
-  let yTabela = y + 2;
-  // Colunas: Descrição (80), Preço (R$) (32), Qtd (18), Subtotal (30)
-  const colX = [margem, margem + 80, margem + 112, margem + 130, margem + 160];
-  // Cabeçalho
-  doc.setFillColor(230, 230, 250);
-  doc.rect(margem, yTabela, 145, 10, 'F');
-  doc.setDrawColor(180, 180, 180);
-  doc.line(margem, yTabela + 10, margem + 145, yTabela + 10); // linha abaixo do header
-  doc.text("Descrição", colX[0] + 2, yTabela + 7);
-  doc.text("Preço (R$)", colX[1] + 2, yTabela + 7);
-  doc.text("Qtd", colX[2] + 2, yTabela + 7);
-  doc.text("Subtotal", colX[3] + 2, yTabela + 7);
-  yTabela += 13;
-  let total = 0;
-  itens.forEach(([desc, preco, qtd], idx) => {
-    const subtotal = (parseFloat(preco.replace(',', '.')) * parseFloat(qtd)).toFixed(2);
-    total += parseFloat(subtotal);
-    doc.text(doc.splitTextToSize(desc, 75), colX[0] + 2, yTabela);
-    doc.text(preco, colX[1] + 2, yTabela);
-    doc.text(qtd, colX[2] + 2, yTabela);
-    doc.text(subtotal, colX[3] + 2, yTabela);
-    // Linha horizontal entre itens
-    doc.setDrawColor(230, 230, 230);
-    doc.line(margem, yTabela + 3, margem + 145, yTabela + 3);
-    yTabela += 8;
+// Função auxiliar para ler imagens como base64
+function lerImagensComoBase64(input) {
+  return new Promise((resolve) => {
+    const files = input.files;
+    if (!files || files.length === 0) return resolve([]);
+    let lidas = 0;
+    const resultados = [];
+    for (let i = 0; i < files.length; i++) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        resultados[i] = e.target.result;
+        lidas++;
+        if (lidas === files.length) resolve(resultados);
+      };
+      reader.readAsDataURL(files[i]);
+    }
   });
-  y = yTabela + 2;
+}
 
-  // Materiais
-  doc.setFontSize(11);
-  doc.setTextColor(40, 70, 150);
-  doc.text("Materiais Utilizados:", margem, y);
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.text(doc.splitTextToSize(dados.materiais || "-", 120), margem + 40, y);
-  y += 8;
+async function gerarPDFComPDFShift(dados, tipo, useProxy = false) {
+  const apiKey = 'sk_ac17422f0d20d9b1b4429793aac7002905242c0c';
+  const templateUrl = tipo === 'Orçamento' ? 'orcamento.html' : 'os.html';
 
-  // Pagamento, prazo e valor
-  doc.setFontSize(11);
-  doc.setTextColor(40, 70, 150);
-  doc.text("Valor Total:", margem, y);
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text(`R$ ${dados.valor}`, margem + 25, y);
-  doc.setFontSize(11);
-  doc.setTextColor(40, 70, 150);
-  doc.text("Forma de Pagamento:", margem + 60, y);
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.text(doc.splitTextToSize(dados.formaPagamento, 60), margem + 100, y);
-  doc.setFontSize(11);
-  doc.setTextColor(40, 70, 150);
-  doc.text("Prazo Execução:", margem, y + 8);
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.text(doc.splitTextToSize(dados.prazo, 60), margem + 30, y + 8);
+  // Carregar o CSS do style.css
+  const css = await fetch('style.css').then(res => res.text());
 
-  // QR Code Pix
-  y += 16;
-  doc.setFontSize(11);
-  doc.setTextColor(40, 70, 150);
-  doc.text("Chave Pix:", margem, y);
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.text(CHAVE_PIX, margem + 22, y);
-  // Gerar QR Code Pix
-  const qrCanvas = document.createElement('canvas');
-  await QRCode.toCanvas(qrCanvas, CHAVE_PIX, { width: 60 });
-  const qrDataUrl = qrCanvas.toDataURL();
-  doc.addImage(qrDataUrl, 'PNG', 170, y - 8, 20, 20);
+  // Carregar o template HTML
+  let template = await fetch(templateUrl).then(res => res.text());
 
-  y += 18;
-  // Termos e condições
-  doc.setFontSize(11);
-  doc.setTextColor(40, 70, 150);
-  doc.text("Termos e Condições:", margem, y);
-  doc.setFontSize(9);
-  doc.setTextColor(80, 80, 80);
-  doc.text(doc.splitTextToSize((dados.condicoes || TERMOS_PADRAO), 180), margem, y + 5);
+  // Embutir o CSS no <head> do template
+  template = template.replace(
+    '</head>',
+    `<style>${css}</style></head>`
+  );
 
-  // Assinaturas
-  y = 265;
-  doc.setDrawColor(120, 120, 120);
-  doc.line(margem, y, margem + 60, y); // linha contratante
-  doc.line(margem + 110, y, margem + 170, y); // linha co-contratado
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.text("Contratante", margem + 10, y + 5);
-  doc.text("Contratado", margem + 120, y + 5);
+  // Carregar a logo como base64
+  const logoBlob = await fetch('logo.png').then(res => res.blob());
+  const logoBase64 = await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.readAsDataURL(logoBlob);
+  });
 
-  // Cidade, data
-  doc.setFontSize(9);
-  doc.text(`São Paulo, ${formatarDataExtenso()}`, margem, y + 15);
+  // Substituir o src da logo no template por base64
+  template = template.replace(/<img src="logo\.png"([^>]*)>/g, `<img src="${logoBase64}"$1>`);
 
-  return doc.output('blob');
+  const empresa = {
+    empresaNome: DADOS_EMPRESA.nome,
+    empresaCnpj: DADOS_EMPRESA.cnpj,
+    empresaRamo: DADOS_EMPRESA.ramo,
+    empresaTelefone: DADOS_EMPRESA.telefone,
+    empresaEmail: DADOS_EMPRESA.email,
+    empresaEndereco: DADOS_EMPRESA.endereco,
+    empresaPix: DADOS_EMPRESA.pix,
+  };
+
+  let itens = [];
+  if (Array.isArray(dados.itens)) {
+    itens = dados.itens;
+  } else if (typeof dados.itens === 'string') {
+    itens = dados.itens.split('\n').map(linha => {
+      const [descricao, preco, quantidade] = linha.split('|').map(s => s.trim());
+      return {
+        codigo: '',
+        descricao: descricao || '',
+        precoUnitario: preco || '',
+        quantidade: quantidade || '',
+        total: preco && quantidade ? (parseFloat(preco) * parseFloat(quantidade)).toFixed(2) : ''
+      };
+    });
+  }
+
+  const dadosTemplate = {
+    ...empresa,
+    ...dados,
+    itens
+  };
+
+  const htmlRenderizado = Mustache.render(template, dadosTemplate);
+
+  // Usar proxy CORS para testes locais se necessário
+  let apiUrl = 'https://api.pdfshift.io/v3/convert/pdf';
+  if (useProxy) {
+    apiUrl = 'https://corsproxy.io/?' + encodeURIComponent(apiUrl);
+  }
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${btoa(`api:${apiKey}`)}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      source: htmlRenderizado,
+      sandbox: true
+    })
+  });
+
+  if (!response.ok) {
+    let errorMsg = 'Erro ao gerar o PDF.';
+    try {
+      const errText = await response.text();
+      errorMsg += '\nStatus: ' + response.status + '\n' + errText;
+    } catch (e) {}
+    alert(errorMsg);
+    return null;
+  }
+
+  return await response.blob();
+}
+
+async function baixarPDF() {
+  const formData = new FormData(document.getElementById("formulario"));
+  const dados = Object.fromEntries(formData);
+  const imagensInput = document.getElementById("imagensInput");
+  dados.imagens = await lerImagensComoBase64(imagensInput);
+  // Para testar localmente, passe true como terceiro argumento:
+  // const pdfBlob = await gerarPDFComPDFShift(dados, tipoDocumentoAtual, true);
+  const pdfBlob = await gerarPDFComPDFShift(dados, tipoDocumentoAtual, false);
+  if (pdfBlob) {
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `documento-${dados.numeroDocumento || Date.now()}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+}
+
+async function enviarWhatsapp() {
+  const formData = new FormData(document.getElementById("formulario"));
+  const dados = Object.fromEntries(formData);
+  const imagensInput = document.getElementById("imagensInput");
+  dados.imagens = await lerImagensComoBase64(imagensInput);
+  // Para testar localmente, passe true como terceiro argumento:
+  // const pdfBlob = await gerarPDFComPDFShift(dados, tipoDocumentoAtual, true);
+  const pdfBlob = await gerarPDFComPDFShift(dados, tipoDocumentoAtual, false);
+  if (pdfBlob) {
+    const link = await uploadPDF(pdfBlob); // Reutilize a função de upload
+    if (link) {
+      const numero = dados.whatsapp.replace(/\D/g, '');
+      const texto = encodeURIComponent(
+        `Olá ${dados.nomeCliente}, segue o link do documento em PDF gerado para você:\n\n${link}\n\nAgradecemos pela preferência!`
+      );
+      window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
+    }
+  }
 }
 
 async function uploadPDF(pdfBlob) {
@@ -284,56 +291,6 @@ async function uploadPDF(pdfBlob) {
   }
 
   return `https://qfcviwlnaqadljbvgipe.supabase.co/storage/v1/object/public/pdf/${fileName}`;
-}
-
-async function baixarPDF() {
-  const formData = new FormData(document.getElementById("formulario"));
-  const dados = Object.fromEntries(formData);
-
-  // Gerar o PDF
-  const pdfBlob = await gerarPDF(dados, tipoDocumentoAtual);
-
-  // Baixar PDF diretamente
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  // O método save espera um objeto jsPDF, não um blob, então precisamos gerar novamente
-  // Solução: alterar gerarPDF para retornar o objeto doc, não o blob
-  // Mas para compatibilidade, aqui convertemos o blob em arquivo para download
-  if (pdfBlob instanceof Blob) {
-    const url = URL.createObjectURL(pdfBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `documento-${dados.numeroDocumento || Date.now()}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
-  } else if (pdfBlob.save) {
-    pdfBlob.save(`documento-${dados.numeroDocumento || Date.now()}.pdf`);
-  }
-}
-
-async function enviarWhatsapp() {
-  const formData = new FormData(document.getElementById("formulario"));
-  const dados = Object.fromEntries(formData);
-
-  // Gerar o PDF
-  const pdfBlob = await gerarPDF(dados, tipoDocumentoAtual);
-
-  // Fazer o upload para o Supabase
-  const link = await uploadPDF(pdfBlob);
-
-  if (link) {
-    const numero = dados.whatsapp.replace(/\D/g, ''); // Número do cliente
-    const texto = encodeURIComponent(
-      `Olá ${dados.nomeCliente}, segue o link do documento em PDF gerado para você:\n\n${link}\n\nAgradecemos pela preferência!`
-    );
-    window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
-  } else {
-    alert("Erro ao gerar o link do PDF. Tente novamente.");
-  }
 }
 </script>
 </body>

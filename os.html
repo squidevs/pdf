@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ordem de Serviço</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <img src="logo.png" alt="logo" />
+          <div class="logo">Ordem de Serviço: {{numeroDocumento}}</div>
+          <p>CNPJ: {{empresaCnpj}}</p>
+          <p>{{empresaRamo}}</p>
+          <p>📞 {{empresaTelefone}}</p>
+          <p>✉ {{empresaEmail}}</p>
+          <p>📍 {{empresaEndereco}}</p>
+          <p>👤 {{empresaPix}}</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Dados do Cliente</h2>
+        <p>
+          <strong>Nome:</strong> {{nomeCliente}} <br />
+          <strong>CPF/CNPJ:</strong> {{cpfCnpj}} <br />
+          <strong>Endereço:</strong> {{endereco}} <br />
+          <strong>Telefone:</strong> {{telefone}} <br />
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Itens</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th>Preço Unitário</th>
+              <th>Quantidade</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#itens}}
+            <tr>
+              <td>{{descricao}}</td>
+              <td>R$ {{precoUnitario}}</td>
+              <td>{{quantidade}}</td>
+              <td>R$ {{total}}</td>
+            </tr>
+            {{/itens}}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Resumo</h2>
+        <p><strong>Valor Total:</strong> R$ {{valor}}</p>
+        <p><strong>Forma de Pagamento:</strong> {{formaPagamento}}</p>
+        <p><strong>Prazo de Execução:</strong> {{prazo}}</p>
+      </div>
+
+      <div class="footer">
+        <p><strong>Termos e Condições:</strong></p>
+        <p class="terms">{{condicoes}}</p>
+      </div>
+
+      <div class="images-section">
+        <h2>Imagens</h2>
+        <div class="images-grid">
+          {{#imagens}}
+          <img src="{{.}}" />
+          {{/imagens}}
+        </div>
+      </div>
+    </div>
+
+    <script>
+            // Supondo que você já tem o template HTML em uma string chamada `template`
+      const css = await fetch('style.css').then(res => res.text());
+      const htmlComCss = template.replace(
+        '</head>',
+        `<style>${css}</style></head>`
+      );
+      // Agora use htmlComCss para gerar o PDF
+    </script>
+  </body>
+</html>
