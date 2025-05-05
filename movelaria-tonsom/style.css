@@ -98,7 +98,7 @@ body {
   border-top: 1px solid #e3e8ee;
 }
 .footer {
-  margin-top: 40px;
+  margin-top: 60px;
   font-size: 13px;
   color: #888;
   padding: 18px 0 0 0;
@@ -112,32 +112,87 @@ body {
 .images-section {
   margin-top: 32px;
 }
+
 .images-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
   gap: 16px;
   margin-top: 10px;
+  page-break-inside: avoid;
 }
+
 .images-grid img {
-  max-width: 180px;
-  border: 1.5px solid #e3e8ee;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  max-height: 480px;
+  border: 1px solid #e3e8ee;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   background: #fff;
+  page-break-inside: avoid;
 }
+
+@media (max-width: 700px) {
+  .images-grid {
+    grid-template-columns: 1fr; /* Mobile: uma por linha */
+  }
+}
+
+
+
+
 .images-grid img:hover {
   transform: scale(1.04);
   box-shadow: 0 4px 16px rgba(37,99,235,0.12);
 }
-@media (max-width: 700px) {
-  .container {
-    padding: 10px 2vw;
-  }
-  .header, .section, .footer {
-    padding: 12px 6px;
-  }
-  .images-grid img {
-    max-width: 100px;
-  }
+
+
+/* Adicionando estilos específicos para os formulários */
+.form-control:read-only {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+/* Melhorando o visual dos inputs numéricos */
+input[type="number"] {
+  text-align: right;
+}
+
+/* Estilo para campos obrigatórios */
+.form-control:required {
+  border-left: 3px solid #2563eb;
+}
+
+/* Melhorando o visual do upload de imagens */
+input[type="file"] {
+  padding: 0.75rem;
+  line-height: 1.5;
+}
+
+/* Estilos para visualização de imagens */
+.images-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.images-preview img {
+  max-width: 150px;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }

@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title>Orçamento</title>
+    <title>Ordem de serviço</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -13,28 +13,30 @@
     <div class="container">
       <div class="header">
         <div>
+          <hr />
+          <div class="logo"></div>
           <img src="logo.png" alt="logo" />
-          <div class="logo">Orçamento</div>
-          <p>CNPJ: {{empresaCnpj}}</p> 
-          <p>{{empresaRamo}}</p>
-          <p>📞 {{empresaTelefone}}</p>
-          <p>✉ {{empresaEmail}}</p>
-          <p>📍 {{empresaEndereco}}</p>
-          <p>👤 {{empresaPix}}</p>
+          <p>
+            <strong>CNPJ: </strong>{{empresaCnpj}} <br />
+            <strong>Telefone: </strong>{{empresaTelefone}} <br />
+            <strong>Email: </strong>{{empresaEmail}} <br />
+          </p>
         </div>
       </div>
 
       <div class="section">
-        <h2>Dados do Cliente</h2>
+        <h2>Ordem de serviço {{codigo}} para o cliente</h2>
+        <hr />
         <p>
           <strong>Nome:</strong> {{nomeCliente}} <br />
           <strong>CPF/CNPJ:</strong> {{cpfCnpj}} <br />
-          <strong>Endereço:</strong> {{endereco}} <br />
           <strong>Telefone:</strong> {{telefone}} <br />
+          <strong>email:</strong> {{email}} <br />
+          <strong>Endereço:</strong> {{endereco}} <br />
         </p>
       </div>
 
-      <div class="section">
+      <!-- <div class="section">
         <h2>Itens</h2>
         <table class="table">
           <thead>
@@ -56,18 +58,43 @@
             {{/itens}}
           </tbody>
         </table>
-      </div>
+      </div> -->
 
       <div class="section">
         <h2>Resumo</h2>
-        <p><strong>Valor Total:</strong> R$ {{valor}}</p>
-        <p><strong>Forma de Pagamento:</strong> {{formaPagamento}}</p>
-        <p><strong>Prazo de Execução:</strong> {{prazo}}</p>
-      </div>
-
-      <div class="footer">
-        <p><strong>Termos e Condições:</strong></p>
-        <p class="terms">{{condicoes}}</p>
+        <hr />
+        <p>
+          <strong>Data do Pedido:</strong> {{dataEmissao}} <br />
+          {{#dataEntrega}}
+          <strong>Data de Entrega:</strong> {{dataEntrega}} <br />
+          {{/dataEntrega}}
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Material</th>
+                <th>Quantidade</th>
+                <th>Valor Unitário</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#itens}}
+              <tr>
+                <td>{{nome}}</td>
+                <td>{{material}}</td>
+                <td>{{qtd}}</td>
+                <td>{{valor}}</td>
+                <td>{{total}}</td>               
+              </tr>
+              <tr>
+                <td colspan="5" style="font-size: 12px; color: #555">
+                  <strong>Descrição:</strong> {{descricao}}
+              </tr>
+              {{/itens}}       
+            </tbody>
+          </table>
+        </p>
       </div>
 
       <div class="images-section">
@@ -77,6 +104,11 @@
           <img src="{{.}}" />
           {{/imagens}}
         </div>
+      </div>
+
+      <div class="footer">
+        <p><strong>Termos e Condições:</strong></p>
+        <p class="terms">{{{condicoes}}}</p>
       </div>
     </div>
     <script>

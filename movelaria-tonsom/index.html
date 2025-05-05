@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Marcenaria Criativa</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/3.2.1/mustache.min.js"></script>
+    <style>
+      body {
+        background: #f5f7fa;
+        padding-top: 4rem;
+        font-family: "Segoe UI", sans-serif;
+      }
+      .container {
+        max-width: 960px;
+      }
+      .hero {
+        background-color: #fff;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+      }
+      .option-card {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+      }
+      .option-card:hover {
+        transform: scale(1.02);
+      }
+      .btn-custom {
+        background-color: #0275d8;
+        color: #fff;
+      }
+      .btn-group-custom button {
+        margin-right: 0.5rem;
+      }
+      .text-small {
+        font-size: 11px;
+        color: #777;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      class="alert alert-info text-center"
+      id="alertBox"
+      style="
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10000;
+        display: none;
+        min-width: 300px;
+      "
+    ></div>
+    <div
+      id="loadingOverlay"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        class="spinner-border text-primary"
+        role="status"
+        style="width: 4rem; height: 4rem"
+      >
+        <span class="visually-hidden">Gerando PDF...</span>
+      </div>
+      <p class="mt-3 fw-bold text-primary">Gerando PDF, aguarde...</p>
+    </div>
+    ;
+    <div class="container">
+      <div class="hero text-center">
+        <img alt="" src="logo.png" />
+        <p class="lead">
+          Crie seu orçamento ou ordem de serviço de forma profissional.
+        </p>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="option-card text-center">
+            <h4>Gerar Orçamento</h4>
+            <button
+              class="btn btn-custom mt-2"
+              onclick="mostrarFormulario('Orcamento')"
+            >
+              Acessar
+            </button>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="option-card text-center">
+            <h4>Gerar Ordem de Serviço</h4>
+            <button
+              class="btn btn-success mt-2"
+              onclick="mostrarFormulario('OrdemDeServico')"
+            >
+              Acessar
+            </button>
+          </div>
+        </div>
+      </div>
+      <hr class="my-5" />
+      <div id="formularios"></div>
+    </div>
+    <script>
+      function mostrarAlerta(mensagem, tipo = "info") {
+        const box = document.getElementById("alertBox");
+        box.className = `alert alert-${tipo} text-center`;
+        box.innerText = mensagem;
+        box.style.display = "block";
+        setTimeout(() => {
+          box.style.display = "none";
+        }, 5000); // 5 segundos
+      }
+
+      const supa = window.supabase.createClient(
+        "https://qfcviwlnaqadljbvgipe.supabase.co", // URL do seu projeto no Supabase
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmY3Zpd2xuYXFhZGxqYnZnaXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwNjc1NjEsImV4cCI6MjA2MTY0MzU2MX0.GUkLtvOI5GMhpE5X4df9s1TI2CVz0tIMSZ2TQaT5AY8" // Chave anon do seu projeto
+      );
+
+      // Dados fixos do contratante (empresa)
+      const DADOS_EMPRESA = {
+        nome: "Movelaria Tomsom",
+        cnpj: "42.898.010/0001-35",
+        ramo: "Prestação de serviço",
+        telefone: "(11) 98818-3037",
+        email: "movelariatomson@gmail.com",
+        endereco: "SP - Brasil",
+        pix: "movelariatomson@gmail.com",
+      };
+
+      // Chave Pix fixa
+      const CHAVE_PIX = "movelariatomson@gmail.com";
+
+      // Termos e condições padrão
+      const TERMOS_PADRAO =
+        "1. Garantia de 12 meses contra defeitos de fabricação.\n" +
+        "2. Cancelamento do serviço pode ser feito em até 24h úteis antes do início.\n" +
+        "3. O pagamento via Pix deve ser realizado para a chave informada.\n" +
+        "4. O não pagamento implica em suspensão imediata do serviço.\n" +
+        "5. Outros termos podem ser acordados entre as partes por escrito.";
+
+      // Função utilitária para formatar data
+      function formatarDataExtenso(data = new Date()) {
+        return `${data
+          .getDate()
+          .toString()
+          .padStart(2, "0")} de ${data.toLocaleString("pt-BR", {
+          month: "long",
+        })} de ${data.getFullYear()}`;
+      }
+
+      let tipoDocumentoAtual = "Orçamento";
+
+      function mostrarFormulario(tipo) {
+        tipoDocumentoAtual =
+          tipo === "OrdemDeServico" ? "Ordem de Serviço" : "Orçamento";
+        document.getElementById(
+          "formularios"
+        ).innerHTML = `<div class="card mt-4">
+  <div class="card-header">${tipo}</div>
+  <div class="card-body">
+    <form id="formulario" class="row g-3">
+      <!-- Campos comuns -->
+      <div class="col-md-4">
+        <label class="form-label">Data de Emissão</label>
+        <input class="form-control" type="date" name="dataEmissao" value="${
+          new Date().toISOString().split("T")[0]
+        }" />
+      </div>
+      <div class="col-md-4">
+        ${
+          tipo === "Orcamento"
+            ? `<label class="form-label">Data de Vaidade</label>
+            <input
+          class="form-control"
+          name="validade"
+          placeholder="Validade (dias)"
+          value="15 dias"
+        />`
+            : `<label class="form-label">Data de Entrega</label>
+            <input
+          class="form-control"
+          type="date"
+          name="dataEntrega"
+          placeholder="Data prevista entrega"
+        />`
+        }
+      </div>
+
+      <!-- Dados do Cliente -->
+      <h3>Dados do Cliente</h3>
+      <div class="col-md-6">
+        <label class="form-label">Cliente</label>
+        <input
+          class="form-control"
+          name="nomeCliente"
+          value="METTA MOVEIS INDUSTRIA E COMERCIO LTDA"
+        />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">CPF/CNPJ</label>
+        <input
+          class="form-control"
+          name="cpfCnpj"
+          placeholder="CPF/CNPJ"
+          value="42.898.010/0001-36"
+        />
+      </div>
+      <div class="col-md-12">
+        <label class="form-label">Endereço</label>
+        <input
+          class="form-control"
+          name="endereco"
+          placeholder="Endereço"
+          value="Rua Soldado Jamil Dagli, 121, Jardim Japão, CEP 02143-030, São Paulo - SP"
+        />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Telefone/Whatsapp</label>
+        <input
+          class="form-control"
+          name="telefone"
+          placeholder="Telefone"
+          value="11965392341"
+        />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <input
+          class="form-control"
+          name="email"
+          placeholder="E-mail"
+          value="sac@mettamoveis.com"
+        />
+      </div>
+
+      <!-- Detalhes do Produto/Serviço -->
+      <hr />
+      <div class="col-md-12">
+      <button type="button" class="btn btn-success" onclick="abrirModalProduto()">Adicionar Item</button>
+      <button type="button" class="btn btn-primary" onclick="mostrarTabela()">Mostrar/Esconder Tabela</button>
+
+          
+      <table class="table table-bordered mt-3 d-none" id="tabelaProdutos">
+        <thead>
+          <tr>
+            <th>Nome Produto</th>
+            <th>Descrição</th>
+            <th>Material</th>
+            <th>Quantidade</th>
+            <th>Valor Unitário</th>
+            <th>Total</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaItens">
+          <!-- Itens serão adicionados aqui -->
+        </tbody>
+      </table>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Pagamento</label>
+        <select class="form-select" name="formaPagamento" placeholder="Pix">
+          <option value="Pix">Pix</option>
+          <option value="Cartão de Crédito">Cartão de Crédito</option>
+          <option value="Cartão de Débito">Cartão de Débito</option>
+          <option value="Boleto">Boleto</option>
+          <option value="Transferência">Transferência</option>
+          <option value="Dinheiro">Dinheiro</option>
+        </select>
+      </div>
+
+      <!-- Observações -->
+      <div class="col-md-12">
+        <label class="form-label">Observações</label>
+        <textarea
+          class="form-control"
+          name="observacoes"
+          placeholder="Observações adicionais"
+          rows="3"
+        ></textarea>
+      </div>
+
+      <!-- Imagens -->
+      <div class="col-md-12">
+        <label class="form-label">Fotos ou Desenhos Técnicos</label>
+        <input
+          class="form-control"
+          name="imagens"
+          id="imagensInput"
+          type="file"
+          accept="image/*"
+          multiple
+        />
+      </div>
+
+      <!-- Botões -->
+      <div class="col-md-12 text-center">
+        <div class="btn-group-custom mt-3">
+          <button type="button" onclick="baixarPDF()" class="btn btn-primary">
+            Baixar PDF
+          </button>
+          <button
+            type="button"
+            onclick="enviarWhatsapp()"
+            class="btn btn-outline-success"
+          >
+            WhatsApp
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+`;
+      }
+
+      // Função para calcular o valor total automaticamente
+      function calcularTotal() {
+        const quantidade =
+          parseFloat(
+            document.querySelector('input[name="quantidade"]').value
+          ) || 0;
+        const valorUnitario =
+          parseFloat(
+            document.querySelector('input[name="valorUnitario"]').value
+          ) || 0;
+        document.querySelector('input[name="valorTotal"]').value = (
+          quantidade * valorUnitario
+        ).toFixed(2);
+      }
+
+      // Função auxiliar para ler imagens como base64
+      function lerImagensComoBase64(input) {
+        return new Promise((resolve) => {
+          const files = input.files;
+          if (!files || files.length === 0) return resolve([]);
+          let lidas = 0;
+          const resultados = [];
+          for (let i = 0; i < files.length; i++) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              resultados[i] = e.target.result;
+              lidas++;
+              if (lidas === files.length) resolve(resultados);
+            };
+            reader.readAsDataURL(files[i]);
+          }
+        });
+      }
+
+      async function gerarPDFComPDFShift(dados, tipo, useProxy = false) {
+        const apiKey = "sk_ac17422f0d20d9b1b4429793aac7002905242c0c";
+        const templateUrl = tipo === "Orçamento" ? "orcamento.html" : "os.html";
+
+        // Carregar o CSS do style.css
+        const css = await fetch("style.css").then((res) => res.text());
+
+        // Carregar o template HTML
+        let template = await fetch(templateUrl).then((res) => res.text());
+
+        // Embutir o CSS no <head> do template
+        template = template.replace("</head>", `<style>${css}</style></head>`);
+
+        // Carregar a logo como base64
+        const logoBlob = await fetch("logo.png").then((res) => res.blob());
+        const logoBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(logoBlob);
+        });
+
+        // Substituir o src da logo no template por base64
+        template = template.replace(
+          /<img src="logo\.png"([^>]*)>/g,
+          `<img src="${logoBase64}"$1>`
+        );
+
+        const empresa = {
+          empresaNome: DADOS_EMPRESA.nome,
+          empresaCnpj: DADOS_EMPRESA.cnpj,
+          empresaRamo: DADOS_EMPRESA.ramo,
+          empresaTelefone: DADOS_EMPRESA.telefone,
+          empresaEmail: DADOS_EMPRESA.email,
+          empresaEndereco: DADOS_EMPRESA.endereco,
+          empresaPix: DADOS_EMPRESA.pix,
+        };
+        // Geração de código do documento
+        const cpfCnpjLimpo = (dados.cpfCnpj || "").replace(/\D/g, "");
+        const ultimos7 = cpfCnpjLimpo.slice(-7);
+        const numeroAleatorio = Math.floor(1000 + Math.random() * 9000);
+        const prefixo = tipo === "Orçamento" ? "OR" : "OS";
+        const codigo = `${prefixo}${numeroAleatorio}${ultimos7}`;
+
+        // Geração dos itens
+        const itensRenderizados = listaProdutos.map((p) => ({
+          nome: p.nome,
+          descricao: p.descricao,
+          material: p.material,
+          qtd: p.qtd,
+          valor: formatarMoeda(p.valor),
+          total: formatarMoeda(p.total),
+        }));
+
+        const dadosTemplate = {
+          ...empresa,
+          ...dados,
+          codigo,
+          nomeProduto: dados.nomeProduto || "",
+          descricao: dados.descricao || dados.observacoes || "",
+          valorUnitario: formatarMoeda(dados.valorUnitario),
+          quantidade: dados.quantidade || "1",
+          total: formatarMoeda(dados.valorTotal),
+          dataEntrega: dados.dataEntrega || "Data de Entrega não informada",
+          validade: dados.validade || "Validade não informada",
+          dataEmissao:
+            dados.dataEmissao || new Date().toISOString().split("T")[0],
+          condicoes: `1. Validade de ${dados.validade || "não informada"}. <br>
+      2. Cancelamento do serviço pode ser feito em até 24h úteis antes do início. <br>
+      3. O pagamento via Pix deve ser realizado para a chave informada. <br>
+      4. O não pagamento implica em suspensão imediata do serviço. <br>
+      5. Outros termos podem ser acordados entre as partes por escrito.`,
+          itens: itensRenderizados,
+        };
+
+        // ✅ Agora sim, aplique aqui:
+        const htmlRenderizado = Mustache.render(template, dadosTemplate);
+
+        // Usar proxy CORS para testes locais se necessário
+        let apiUrl = "https://api.pdfshift.io/v3/convert/pdf";
+        if (useProxy) {
+          apiUrl = "https://corsproxy.io/?" + encodeURIComponent(apiUrl);
+        }
+
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${btoa(`api:${apiKey}`)}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            source: htmlRenderizado,
+            sandbox: true,
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMsg = "Erro ao gerar o PDF.";
+          try {
+            const errText = await response.text();
+            errorMsg += "\nStatus: " + response.status + "\n" + errText;
+          } catch (e) {}
+          mostrarAlerta(errorMsg);
+          return null;
+        }
+
+        return await response.blob();
+      }
+
+      function mostrarLoading() {
+        document.getElementById("loadingOverlay").style.display = "flex";
+      }
+
+      function esconderLoading() {
+        document.getElementById("loadingOverlay").style.display = "none";
+      }
+
+      async function baixarPDF() {
+        mostrarLoading();
+        try {
+          const formData = new FormData(document.getElementById("formulario"));
+          const dados = Object.fromEntries(formData);
+          const imagensInput = document.getElementById("imagensInput");
+          if (!imagensInput) {
+            mostrarAlerta("O campo de imagens não foi encontrado.");
+            esconderLoading();
+            return;
+          }
+          dados.imagens = await lerImagensComoBase64(imagensInput);
+          const pdfBlob = await gerarPDFComPDFShift(
+            dados,
+            tipoDocumentoAtual,
+            false
+          );
+          if (pdfBlob) {
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `documento-${dados.numeroDocumento || Date.now()}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }, 100);
+          }
+        } catch (err) {
+          console.error("Erro ao gerar o PDF:", err);
+          mostrarAlerta("Erro ao gerar o PDF.");
+        } finally {
+          esconderLoading();
+          mostrarAlerta("PDF gerado com sucesso!", "success");
+        }
+      }
+
+      async function enviarWhatsapp() {
+        mostrarLoading(); // Mostra o loading
+
+        try {
+          const formData = new FormData(document.getElementById("formulario"));
+          const dados = Object.fromEntries(formData);
+          const imagensInput = document.getElementById("imagensInput");
+
+          if (!imagensInput) {
+            mostrarAlerta("O campo de imagens não foi encontrado.");
+            esconderLoading();
+            return;
+          }
+
+          dados.imagens = await lerImagensComoBase64(imagensInput);
+
+          const pdfBlob = await gerarPDFComPDFShift(
+            dados,
+            tipoDocumentoAtual,
+            false
+          );
+
+          if (pdfBlob) {
+            const link = await uploadPDF(pdfBlob);
+
+            if (link) {
+              const numero = (dados.telefone || "").replace(/\D/g, "");
+              const texto = encodeURIComponent(
+                `Olá ${dados.nomeCliente}, segue o link do documento gerado para você:\n\n${link}\n\nAgradecemos pela preferência!`
+              );
+
+              window.open(`https://wa.me/${numero}?text=${texto}`, "_blank");
+            }
+          }
+        } catch (err) {
+          console.error("Erro ao enviar PDF por WhatsApp:", err);
+          mostrarAlerta("Erro ao gerar ou enviar o PDF.");
+        } finally {
+          esconderLoading(); // Esconde o loading
+        }
+      }
+
+      async function uploadPDF(pdfBlob) {
+        const fileName = `documento-${Date.now()}.pdf`;
+
+        const { data, error } = await supa.storage
+          .from("pdf")
+          .upload(fileName, pdfBlob, {
+            contentType: "application/pdf",
+            upsert: false,
+          });
+
+        if (error) {
+          mostrarAlerta("Erro ao fazer upload: " + error.message);
+          return null;
+        }
+
+        return `https://qfcviwlnaqadljbvgipe.supabase.co/storage/v1/object/public/pdf/${fileName}`;
+      }
+    </script>
+    <!-- MODAL DE PRODUTO - insira este bloco dentro da <body>, logo após a div de alertBox -->
+    <div
+      aria-hidden="true"
+      aria-labelledby="modalProdutoLabel"
+      class="modal fade"
+      id="modalProduto"
+      tabindex="-1"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="formModalProduto" onsubmit="salvarProduto(event)">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalProdutoLabel">
+                Adicionar Produto
+              </h5>
+              <button
+                aria-label="Fechar"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                type="button"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <input id="produtoId" type="hidden" />
+              <div class="mb-3">
+                <label class="form-label">Nome do Produto</label>
+                <input
+                  class="form-control"
+                  id="produtoNome"
+                  required=""
+                  type="text"
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Descrição</label>
+                <textarea
+                  class="form-control"
+                  id="produtoDescricao"
+                  rows="2"
+                ></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Material</label>
+                <input class="form-control" id="produtoMaterial" type="text" />
+              </div>
+              <div class="row">
+                <div class="col">
+                  <label class="form-label">Quantidade</label>
+                  <input
+                    class="form-control"
+                    id="produtoQtd"
+                    min="1"
+                    required=""
+                    type="number"
+                    value="1"
+                  />
+                </div>
+                <div class="col">
+                  <label class="form-label">Valor Unitário (R$)</label>
+                  <input
+                    class="form-control"
+                    id="produtoValor"
+                    required=""
+                    step="0.01"
+                    type="number"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary" type="submit">Salvar</button>
+              <button
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+                type="button"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script>
+      // array de produtos
+      // array de produtos
+      let listaProdutos = [];
+
+      function formatarMoeda(valor) {
+        const numero = parseFloat(valor) || 0;
+        return numero.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+      }
+
+      function mostrarTabela() {
+        const tabela = document.getElementById("tabelaProdutos");
+        tabela.classList.toggle("d-none");
+      }
+
+      function abrirModalProduto(index = null) {
+        const modal = new bootstrap.Modal(
+          document.getElementById("modalProduto")
+        );
+        document.getElementById("formModalProduto").reset();
+        document.getElementById("produtoId").value =
+          index !== null ? index : "";
+
+        if (index !== null) {
+          const produto = listaProdutos[index];
+          document.getElementById("produtoNome").value = produto.nome;
+          document.getElementById("produtoDescricao").value = produto.descricao;
+          document.getElementById("produtoMaterial").value = produto.material;
+          document.getElementById("produtoQtd").value = produto.qtd;
+          document.getElementById("produtoValor").value =
+            produto.valorRaw || "";
+        }
+
+        modal.show();
+      }
+
+      function salvarProduto(event) {
+        event.preventDefault();
+        const index = document.getElementById("produtoId").value;
+
+        const qtd = parseInt(document.getElementById("produtoQtd").value);
+        const valor = parseFloat(document.getElementById("produtoValor").value);
+
+        const produto = {
+          nome: document.getElementById("produtoNome").value,
+          descricao: document.getElementById("produtoDescricao").value,
+          material: document.getElementById("produtoMaterial").value,
+          qtd,
+          valor,
+          valorRaw: valor,
+          total: qtd * valor,
+        };
+
+        if (index !== "") {
+          listaProdutos[index] = produto;
+        } else {
+          listaProdutos.push(produto);
+        }
+
+        atualizarTabelaProdutos();
+        bootstrap.Modal.getInstance(
+          document.getElementById("modalProduto")
+        ).hide();
+      }
+
+      function atualizarTabelaProdutos() {
+        const tbody = document.getElementById("tabelaItens");
+        tbody.innerHTML = "";
+
+        listaProdutos.forEach((p, i) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+        <td>${p.nome}</td>
+        <td>${p.descricao}</td>
+        <td>${p.material}</td>
+        <td>${p.qtd}</td>
+        <td>${formatarMoeda(p.valor)}</td>
+        <td>${formatarMoeda(p.total)}</td>
+        <td>
+          <button type="button" class="btn btn-sm btn-warning editar-btn" data-index="${i}">Editar</button>
+          <button type="button" class="btn btn-sm btn-danger excluir-btn" data-index="${i}">Excluir</button>
+        </td>
+      `;
+          tbody.appendChild(row);
+          row
+            .querySelector(".editar-btn")
+            .addEventListener("click", function (e) {
+              e.preventDefault();
+              const index = this.getAttribute("data-index");
+              abrirModalProduto(index);
+            });
+
+          row
+            .querySelector(".excluir-btn")
+            .addEventListener("click", function (e) {
+              e.preventDefault();
+              const index = this.getAttribute("data-index");
+              removerProduto(index);
+            });
+        });
+
+        // Se tiver ao menos 1 produto, mostrar tabela
+        const tabela = document.getElementById("tabelaProdutos");
+        if (listaProdutos.length > 0) {
+          tabela.classList.remove("d-none");
+        } else {
+          tabela.classList.add("d-none");
+        }
+      }
+
+      function removerProduto(index) {
+        if (confirm("Deseja remover este produto?")) {
+          listaProdutos.splice(index, 1);
+          atualizarTabelaProdutos();
+        }
+      }
+    </script>
+  </body>
+</html>
